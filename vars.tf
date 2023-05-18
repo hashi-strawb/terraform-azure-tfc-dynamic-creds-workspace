@@ -4,6 +4,12 @@ variable "tfc_azure_audience" {
   description = "The audience value to use in run identity tokens"
 }
 
+variable "azure_role_definition_name" {
+  type        = string
+  default     = "Contributor"
+  description = "The audience value to use in run identity tokens"
+}
+
 variable "tfc_hostname" {
   type        = string
   default     = "app.terraform.io"

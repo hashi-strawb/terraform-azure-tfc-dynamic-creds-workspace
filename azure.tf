@@ -22,9 +22,12 @@ resource "azuread_service_principal" "tfc_service_principal" {
 # principal has within the Azure subscription.
 data "azurerm_subscription" "current" {}
 resource "azurerm_role_assignment" "tfc_role_assignment" {
-  scope                = data.azurerm_subscription.current.id
-  principal_id         = azuread_service_principal.tfc_service_principal.object_id
-  role_definition_name = "Contributor"
+  # TODO: Make this configurable
+  scope = data.azurerm_subscription.current.id
+
+  principal_id = azuread_service_principal.tfc_service_principal.object_id
+
+  role_definition_name = var.azure_role_definition_name
 }
 
 
