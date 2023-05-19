@@ -5,10 +5,43 @@
 
 # Creates an application registration within Azure Active Directory, specific to the Workspace
 
+data "azuread_application_published_app_ids" "well_known" {}
+
+data "azuread_service_principal" "msgraph" {
+  application_id = data.azuread_application_published_app_ids.well_known.result.MicrosoftGraph
+}
+
 data "azuread_client_config" "current" {}
 resource "azuread_application" "tfc_application" {
   display_name = "tfc-${var.tfc_organization_name}-${var.tfc_workspace_name}"
-  owners       = [data.azuread_client_config.current.object_id]
+  owners = distinct([
+    data.azuread_client_config.current.object_id,
+  ])
+
+
+  dynamic "required_resource_access" {
+    for_each = toset(
+      length(var.azuread_graph_permissions) > 0 ?
+      [
+        data.azuread_service_principal.msgraph.application_id,
+      ]
+      :
+      []
+    )
+
+    content {
+      resource_app_id = required_resource_access.key
+
+      dynamic "resource_access" {
+        for_each = var.azuread_graph_permissions
+        content {
+          id   = data.azuread_service_principal.msgraph.app_role_ids[resource_access.key]
+          type = "Role"
+        }
+      }
+
+    }
+  }
 }
 
 
@@ -16,7 +49,24 @@ resource "azuread_application" "tfc_application" {
 # application registration.
 resource "azuread_service_principal" "tfc_service_principal" {
   application_id = azuread_application.tfc_application.application_id
+  owners = distinct([
+    data.azuread_client_config.current.object_id,
+  ])
 }
+
+resource "azuread_app_role_assignment" "tfc_service_principal" {
+  for_each = var.azuread_graph_permissions
+
+  app_role_id         = data.azuread_service_principal.msgraph.app_role_ids[each.key]
+  principal_object_id = azuread_service_principal.tfc_service_principal.object_id
+  resource_object_id  = data.azuread_service_principal.msgraph.object_id
+}
+
+
+
+
+
+
 
 # Creates a role assignment which controls the permissions the service
 # principal has within the Azure subscription.
@@ -29,6 +79,8 @@ resource "azurerm_role_assignment" "tfc_role_assignment" {
 
   role_definition_name = var.azure_role_definition_name
 }
+
+
 
 
 # Creates federated identity credentials which ensures that the given

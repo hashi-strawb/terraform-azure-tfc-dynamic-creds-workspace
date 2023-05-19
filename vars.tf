@@ -10,6 +10,12 @@ variable "azure_role_definition_name" {
   description = "The audience value to use in run identity tokens"
 }
 
+variable "azuread_graph_permissions" {
+  type        = set(string)
+  default     = []
+  description = "Should we grant any Azure Graph permissions to the Azure AD App? Use names, like Application.ReadWrite.OwnedBy"
+}
+
 variable "tfc_hostname" {
   type        = string
   default     = "app.terraform.io"
